@@ -4,6 +4,20 @@ You are the PLANNER agent. Convert the user prompt into a COMPLETE engineering p
 
 User request:
 {user_prompt}
+
+You MUST respond with a valid JSON object matching this structure:
+{{
+  "name": "project name",
+  "description": "one-line description",
+  "techstack": "technologies to use (e.g., HTML, CSS, JavaScript)",
+  "features": ["feature 1", "feature 2", "feature 3"],
+  "files": [
+    {{"path": "file1.html", "purpose": "main HTML file"}},
+    {{"path": "style.css", "purpose": "styling"}}
+  ]
+}}
+
+Be specific and practical. List all files needed for a working project.
     """
     return PLANNER_PROMPT
 
@@ -24,6 +38,18 @@ RULES:
 
 Project Plan:
 {plan}
+
+You MUST respond with a valid JSON object matching this structure:
+{{
+  "implementation_steps": [
+    {{
+      "filepath": "path/to/file.ext",
+      "task_description": "Detailed description of what to implement in this file, including specific function names, classes, variables, and how it integrates with other files."
+    }}
+  ]
+}}
+
+Be thorough and specific in each task description.
     """
     return ARCHITECT_PROMPT
 

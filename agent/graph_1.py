@@ -8,38 +8,60 @@ from langgraph.prebuilt import create_react_agent
 from agent.prompts import *
 from agent.states import *
 from agent.tools import write_file, read_file, get_current_directory, list_files
+from config import GROQ_MODEL, ENABLE_DEBUG, ENABLE_VERBOSE
 
 _ = load_dotenv()
 
-set_debug(True)
-set_verbose(True)
+set_debug(ENABLE_DEBUG)
+set_verbose(ENABLE_VERBOSE)
 
-llm = ChatGroq(model="openai/gpt-oss-120b")
+llm = ChatGroq(model=GROQ_MODEL)
 
 
 def planner_agent(state: dict) -> dict:
     """Converts user prompt into a structured Plan."""
     user_prompt = state["user_prompt"]
-    resp = llm.with_structured_output(Plan).invoke(
-        planner_prompt(user_prompt)
-    )
-    if resp is None:
-        raise ValueError("Planner did not return a valid response.")
-    return {"plan": resp}
+    try:
+        resp = llm.with_structured_output(Plan).invoke(
+            planner_prompt(user_prompt)
+        )
+        if resp is None:
+            raise ValueError("Planner did not return a valid response.")
+        return {"plan": resp}
+    except Exception as e:
+        # Fallback: try with method="json_mode" instead of function calling
+        llm_json = ChatGroq(model=GROQ_MODEL, model_kwargs={"response_format": {"type": "json_object"}})
+        resp = llm_json.with_structured_output(Plan, method="json_mode").invoke(
+            planner_prompt(user_prompt)
+        )
+        if resp is None:
+            raise ValueError("Planner did not return a valid response.")
+        return {"plan": resp}
 
 
 def architect_agent(state: dict) -> dict:
     """Creates TaskPlan from Plan."""
     plan: Plan = state["plan"]
-    resp = llm.with_structured_output(TaskPlan).invoke(
-        architect_prompt(plan=plan.model_dump_json())
-    )
-    if resp is None:
-        raise ValueError("Planner did not return a valid response.")
-
-    resp.plan = plan
-    print(resp.model_dump_json())
-    return {"task_plan": resp}
+    try:
+        resp = llm.with_structured_output(TaskPlan).invoke(
+            architect_prompt(plan=plan.model_dump_json())
+        )
+        if resp is None:
+            raise ValueError("Architect did not return a valid response.")
+        resp.plan = plan
+        print(resp.model_dump_json())
+        return {"task_plan": resp}
+    except Exception as e:
+        # Fallback: try with method="json_mode"
+        llm_json = ChatGroq(model=GROQ_MODEL, model_kwargs={"response_format": {"type": "json_object"}})
+        resp = llm_json.with_structured_output(TaskPlan, method="json_mode").invoke(
+            architect_prompt(plan=plan.model_dump_json())
+        )
+        if resp is None:
+            raise ValueError("Architect did not return a valid response.")
+        resp.plan = plan
+        print(resp.model_dump_json())
+        return {"task_plan": resp}
 
 
 def coder_agent(state: dict) -> dict:
