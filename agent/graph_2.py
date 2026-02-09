@@ -13,7 +13,7 @@ from agent.tools import write_file, read_file, get_current_directory, list_files
 from config import GROQ_MODEL
 
 _ = load_dotenv()
-groq_key = os.getenv(GROQ_API_KEY)
+groq_key = os.getenv("GROQ_API_KEY")
 
 llm = ChatGroq(model=GROQ_MODEL, temperature=0,
 api_key = groq_key )
